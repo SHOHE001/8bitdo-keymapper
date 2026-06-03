@@ -1,9 +1,28 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerProfileHandlers } from './ipc/profiles'
 import { registerIoHandlers } from './ipc/io'
 import { registerMainWindow } from './notifications'
+
+// dev 時は Vite の HMR（ws/http localhost、HMR の eval）を許容する必要がある。
+// prod は self 以外を一切拒否する。
+const PROD_CSP =
+  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+const DEV_CSP =
+  "default-src 'self' http://localhost:* ws://localhost:*; script-src 'self' 'unsafe-eval' 'unsafe-inline' http://localhost:*; style-src 'self' 'unsafe-inline' http://localhost:*; img-src 'self' data: http://localhost:*; font-src 'self' data: http://localhost:*; connect-src 'self' http://localhost:* ws://localhost:*; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+
+function installCsp(): void {
+  const csp = is.dev ? DEV_CSP : PROD_CSP
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp]
+      }
+    })
+  })
+}
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -16,7 +35,11 @@ function createWindow(): void {
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
-      sandbox: false
+      // preload は ESM (.mjs) ビルドのため sandbox: true は現状非対応。
+      // contextIsolation / nodeIntegration は明示して既定変更に耐える。
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
     }
   })
 
@@ -43,6 +66,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  installCsp()
   registerProfileHandlers()
   registerIoHandlers()
   createWindow()
