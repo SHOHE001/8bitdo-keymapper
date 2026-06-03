@@ -3,7 +3,12 @@ import { createProfileStore } from '../src/store/useProfileStore'
 import type { AppState, IpcApi } from '../../shared/types'
 
 function makeApi(): IpcApi {
-  let state: AppState = { profiles: [], activeProfileId: null, version: 1 }
+  let state: AppState = {
+    profiles: [],
+    activeProfileId: null,
+    version: 2,
+    ui: { welcomeSeen: false }
+  }
   return {
     getState: vi.fn(async () => state),
     mutate: vi.fn(async (command): Promise<AppState> => {
@@ -22,6 +27,9 @@ function makeApi(): IpcApi {
           return state
         case 'profiles/setActive':
           state = { ...state, activeProfileId: command.id }
+          return state
+        case 'ui/setWelcomeSeen':
+          state = { ...state, ui: { ...state.ui, welcomeSeen: command.value } }
           return state
         default:
           return state

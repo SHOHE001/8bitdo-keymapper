@@ -30,6 +30,11 @@ export function registerStateHandlers(): void {
         store.setActive(raw.id)
         break
       }
+      case 'ui/setWelcomeSeen': {
+        if (typeof raw.value !== 'boolean') throw new Error('Invalid value')
+        store.setWelcomeSeen(raw.value)
+        break
+      }
       default:
         throw new Error(`Unknown command type: ${(raw as { type?: string }).type}`)
     }

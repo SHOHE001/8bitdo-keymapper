@@ -52,10 +52,18 @@ export interface Profile {
 
 export type AppStateVersion = 1 | 2
 
+// AppState は常に「最新版に正規化された状態」を表す。
+// version フィールドは「永続ファイルが何バージョンだったか」のメタ情報として保持し、
+// 旧バージョンを読み込んだ場合は migrate 経由で必ず最新版（v2）の形にしてから渡す。
 export interface AppState {
   profiles: Profile[]
   activeProfileId: string | null
   version: AppStateVersion
+  ui: AppUiState
+}
+
+export interface AppUiState {
+  welcomeSeen: boolean
 }
 
 import type { Command } from './commands'

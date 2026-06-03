@@ -1,4 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+
+vi.mock('../src/lib/persistWelcomeSeen', () => ({
+  persistWelcomeSeen: vi.fn(async () => {})
+}))
+
+import { persistWelcomeSeen } from '../src/lib/persistWelcomeSeen'
 import { useUiStore, TOAST_DURATION_MS } from '../src/store/useUiStore'
 
 function resetUiStore(): void {
@@ -79,16 +85,28 @@ describe('useUiStore - confirmDialog', () => {
 describe('useUiStore - welcome', () => {
   beforeEach(() => {
     resetUiStore()
-    window.localStorage.removeItem('keymapper-welcome-seen')
+    vi.mocked(persistWelcomeSeen).mockClear()
   })
 
-  it('openWelcome → closeWelcome で welcomeSeen が true になり localStorage に反映', () => {
+  it('closeWelcome で welcomeSeen が true になり、persistWelcomeSeen が呼ばれる', () => {
     useUiStore.getState().openWelcome()
     expect(useUiStore.getState().isWelcomeOpen).toBe(true)
     useUiStore.getState().closeWelcome()
     expect(useUiStore.getState().isWelcomeOpen).toBe(false)
     expect(useUiStore.getState().welcomeSeen).toBe(true)
-    expect(window.localStorage.getItem('keymapper-welcome-seen')).toBe('1')
+    expect(persistWelcomeSeen).toHaveBeenCalledWith(expect.any(Function), true)
+  })
+
+  it('既に welcomeSeen=true のとき closeWelcome では persist を再送しない', () => {
+    useUiStore.setState({ welcomeSeen: true, isWelcomeOpen: true })
+    useUiStore.getState().closeWelcome()
+    expect(persistWelcomeSeen).not.toHaveBeenCalled()
+  })
+
+  it('markWelcomeSeen で persist が呼ばれる', () => {
+    useUiStore.getState().markWelcomeSeen()
+    expect(useUiStore.getState().welcomeSeen).toBe(true)
+    expect(persistWelcomeSeen).toHaveBeenCalledWith(expect.any(Function), true)
   })
 })
 

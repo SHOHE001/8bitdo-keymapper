@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { KeyId } from '@shared/types'
+import { persistWelcomeSeen } from '../lib/persistWelcomeSeen'
 
 export type ToastType = 'info' | 'success' | 'error'
 
@@ -15,26 +16,6 @@ export interface ConfirmRequest {
 }
 
 export const TOAST_DURATION_MS = 2500
-const WELCOME_SEEN_KEY = 'keymapper-welcome-seen'
-
-function readWelcomeSeen(): boolean {
-  if (typeof window === 'undefined') return false
-  try {
-    return window.localStorage.getItem(WELCOME_SEEN_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-function writeWelcomeSeen(value: boolean): void {
-  if (typeof window === 'undefined') return
-  try {
-    if (value) window.localStorage.setItem(WELCOME_SEEN_KEY, '1')
-    else window.localStorage.removeItem(WELCOME_SEEN_KEY)
-  } catch {
-    // ignore storage errors
-  }
-}
 
 interface UiStore {
   selectedKeyId: KeyId | null
@@ -69,7 +50,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
   isAssignmentModalOpen: false,
   isShareDialogOpen: false,
   isWelcomeOpen: false,
-  welcomeSeen: readWelcomeSeen(),
+  welcomeSeen: false,
   toasts: [],
   confirmDialog: null,
   focusProfileInputToken: 0,
@@ -94,13 +75,14 @@ export const useUiStore = create<UiStore>((set, get) => ({
   closeWelcome() {
     set({ isWelcomeOpen: false })
     if (!get().welcomeSeen) {
-      writeWelcomeSeen(true)
       set({ welcomeSeen: true })
+      void persistWelcomeSeen((m, t) => get().addToast(m, t), true)
     }
   },
   markWelcomeSeen() {
-    writeWelcomeSeen(true)
+    if (get().welcomeSeen) return
     set({ welcomeSeen: true })
+    void persistWelcomeSeen((m, t) => get().addToast(m, t), true)
   },
   addToast(message, type = 'info') {
     const id = get()._nextToastId

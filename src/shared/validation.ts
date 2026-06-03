@@ -1,6 +1,5 @@
 import type {
   AppState,
-  AppStateVersion,
   Assignment,
   ComboAssignment,
   DisabledAssignment,
@@ -169,15 +168,12 @@ export function decodeFailure(reason: DecodeFailureReason): DecodeFailure {
   return { ok: false, reason, message: DECODE_FAILURE_MESSAGES[reason] }
 }
 
-const ALLOWED_VERSIONS: AppStateVersion[] = [1, 2]
-
-function isAllowedVersion(v: unknown): v is AppStateVersion {
-  return typeof v === 'number' && (ALLOWED_VERSIONS as number[]).includes(v)
-}
-
+// AppState の正規形は v2（最新版）のみ。v1 は migrate 経由で v2 化してから渡す前提なので、
+// このバリデータは v2 形式しか受理しない。
 export function validateAppState(raw: unknown): AppState | null {
   if (!isObject(raw)) return null
-  if (!isAllowedVersion(raw.version)) return null
+  if (raw.version !== 2) return null
+  if (!isObject(raw.ui) || typeof raw.ui.welcomeSeen !== 'boolean') return null
   if (!Array.isArray(raw.profiles)) return null
   const profiles: Profile[] = []
   for (const p of raw.profiles) {
@@ -192,6 +188,7 @@ export function validateAppState(raw: unknown): AppState | null {
   return {
     profiles,
     activeProfileId: activeProfileId ?? null,
-    version: raw.version
+    version: 2,
+    ui: { welcomeSeen: raw.ui.welcomeSeen }
   }
 }

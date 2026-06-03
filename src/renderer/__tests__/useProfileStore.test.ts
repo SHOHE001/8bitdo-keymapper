@@ -17,12 +17,19 @@ import { useProfileStore, DEFAULT_SAMPLE_NAME } from '../src/store/useProfileSto
 import { useUiStore } from '../src/store/useUiStore'
 import { PRESETS } from '../src/data/presets'
 
-let fakeState: AppState = { profiles: [], activeProfileId: null, version: 1 }
+const emptyState = (): AppState => ({
+  profiles: [],
+  activeProfileId: null,
+  version: 2,
+  ui: { welcomeSeen: false }
+})
+
+let fakeState: AppState = emptyState()
 
 function resetMutateMock(): void {
-  fakeState = { profiles: [], activeProfileId: null, version: 1 }
+  fakeState = emptyState()
   vi.mocked(api.getState).mockResolvedValue(fakeState)
-  vi.mocked(api.mutate).mockImplementation(async (command: Command) => {
+  vi.mocked(api.mutate).mockImplementation(async (command: Command): Promise<AppState> => {
     switch (command.type) {
       case 'profiles/save': {
         const idx = fakeState.profiles.findIndex((p) => p.id === command.profile.id)
@@ -44,6 +51,9 @@ function resetMutateMock(): void {
       }
       case 'profiles/setActive':
         fakeState = { ...fakeState, activeProfileId: command.id }
+        return fakeState
+      case 'ui/setWelcomeSeen':
+        fakeState = { ...fakeState, ui: { ...fakeState.ui, welcomeSeen: command.value } }
         return fakeState
     }
   })

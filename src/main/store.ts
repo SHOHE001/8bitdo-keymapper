@@ -19,7 +19,8 @@ const tmpPath = `${storePath}.tmp`
 const DEFAULT_STATE: AppState = {
   profiles: [],
   activeProfileId: null,
-  version: 1
+  version: 2,
+  ui: { welcomeSeen: false }
 }
 
 function backupCorruptFile(): string | null {
@@ -106,5 +107,11 @@ export function deleteProfile(id: string): void {
 export function setActive(id: string | null): void {
   const state = readState()
   state.activeProfileId = id
+  writeState(state)
+}
+
+export function setWelcomeSeen(value: boolean): void {
+  const state = readState()
+  state.ui = { ...state.ui, welcomeSeen: value }
   writeState(state)
 }

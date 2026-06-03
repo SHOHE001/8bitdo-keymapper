@@ -1,9 +1,20 @@
 import type { AppState } from '../shared/types'
+import { validateAppState } from '../shared/validation'
 
 type Migrator = (state: unknown) => unknown
 
-// version N → N+1 への変換を順に並べる。フェーズ10で v1→v2 の実体を入れる。
-const migrators: Record<number, Migrator> = {}
+// 各キーは「version N → N+1」への変換。
+// 例: 1: (v1) => v2 は v1 を読み込んだとき v2 形式に持ち上げる。
+const migrators: Record<number, Migrator> = {
+  1: (state) => {
+    const s = (state ?? {}) as Record<string, unknown>
+    return {
+      ...s,
+      version: 2,
+      ui: { welcomeSeen: false }
+    }
+  }
+}
 
 function readVersion(raw: unknown): number | null {
   if (typeof raw !== 'object' || raw === null) return null
@@ -11,7 +22,7 @@ function readVersion(raw: unknown): number | null {
   return typeof v === 'number' ? v : null
 }
 
-const LATEST_VERSION = 1
+const LATEST_VERSION = 2
 
 export interface MigrateSuccess {
   ok: true
@@ -22,8 +33,6 @@ export interface MigrateFailure {
   reason: 'unknown-version' | 'migration-failed' | 'invalid-shape'
 }
 export type MigrateResult = MigrateSuccess | MigrateFailure
-
-import { validateAppState } from '../shared/validation'
 
 export function migrate(raw: unknown): MigrateResult {
   const version = readVersion(raw)

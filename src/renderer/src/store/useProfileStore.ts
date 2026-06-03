@@ -71,6 +71,7 @@ export function createProfileStore(deps: ProfileStoreDeps) {
       try {
         const state = await api.getState()
         set({ profiles: state.profiles, activeProfileId: state.activeProfileId, initialized: true })
+        useUiStore.setState({ welcomeSeen: state.ui.welcomeSeen })
       } catch (err) {
         toaster(toastMessages.stateLoadFailed(), 'error')
         set({ initialized: true })
