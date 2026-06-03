@@ -18,6 +18,8 @@ export const MAX_PROFILE_JSON_BYTES = 256_000
 export const MAX_MAPPING_KEYS = 256
 export const MAX_MACRO_STEPS = 64
 
+// ModelTheme は型としては string に開いているが、検証ではビルトインのみ受理する。
+// 将来ユーザー定義テーマを許容するときは、ここに登録済みテーマ ID のリストを差し込む。
 const ALLOWED_THEMES: ModelTheme[] = ['nes', 'famicom', 'c64', 'ibm', 'xbox']
 const ALLOWED_MODIFIERS = new Set<ComboAssignment['modifiers'][number]>(['Ctrl', 'Shift', 'Alt', 'Meta'])
 const ALLOWED_MEDIA: MediaAssignment['action'][] = ['PlayPause', 'Next', 'Prev', 'VolumeUp', 'VolumeDown', 'Mute']

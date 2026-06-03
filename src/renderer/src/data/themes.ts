@@ -105,5 +105,7 @@ export function getTheme(id: ModelTheme): ThemeConfig {
 }
 
 export function getThemeStyle(id: ModelTheme): CSSProperties {
+  // CSS カスタムプロパティ (--keycap-bg 等) は React.CSSProperties の型に乗らないので、
+  // 一旦 unknown を経由してインライン style 用に narrow する。
   return getTheme(id).vars as unknown as CSSProperties
 }

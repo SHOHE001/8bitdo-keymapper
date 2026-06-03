@@ -1,4 +1,8 @@
-export type ModelTheme = 'nes' | 'famicom' | 'c64' | 'ibm' | 'xbox'
+export type BuiltinTheme = 'nes' | 'famicom' | 'c64' | 'ibm' | 'xbox'
+// 将来テーマ追加（ユーザー定義等）に向けた拡張ポイント。型は string 全体に開きつつ、
+// 既知のビルトイン名はリテラル型として補完候補に出る形（"string & {}" イディオム）。
+// runtime 上では validateProfile が現状ビルトイン whitelist でのみ受理する。
+export type ModelTheme = BuiltinTheme | (string & {})
 
 export type KeyId = string
 
