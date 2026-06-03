@@ -1,6 +1,9 @@
 import { create } from 'zustand'
-import type { Profile, KeyId, Assignment, ModelTheme } from '@shared/types'
+import type { Profile, KeyId, Assignment, ModelTheme, KeyMapping } from '@shared/types'
 import { api } from '../lib/ipc'
+import { PRESETS } from '../data/presets'
+
+export const DEFAULT_SAMPLE_NAME = 'マイプロファイル'
 
 interface ProfileStore {
   profiles: Profile[]
@@ -9,13 +12,14 @@ interface ProfileStore {
 
   init(): Promise<void>
   activeProfile(): Profile | null
-  createProfile(name: string): Promise<void>
+  createProfile(name: string): Promise<Profile>
+  createSampleProfile(opts?: { presetId?: string; baseName?: string }): Promise<Profile>
   renameProfile(id: string, name: string): Promise<void>
   deleteProfile(id: string): Promise<void>
   setActive(id: string): Promise<void>
   setTheme(id: string, theme: ModelTheme): Promise<void>
   setAssignment(profileId: string, keyId: KeyId, assignment: Assignment): Promise<void>
-  applyMapping(profileId: string, mapping: Profile['mapping']): Promise<void>
+  applyMapping(profileId: string, mapping: KeyMapping): Promise<void>
 }
 
 function makeId(): string {
@@ -24,6 +28,13 @@ function makeId(): string {
 
 function now(): string {
   return new Date().toISOString()
+}
+
+function uniqueProfileName(existing: Profile[], baseName: string): string {
+  if (!existing.some((p) => p.name === baseName)) return baseName
+  let n = 2
+  while (existing.some((p) => p.name === `${baseName} ${n}`)) n += 1
+  return `${baseName} ${n}`
 }
 
 export const useProfileStore = create<ProfileStore>((set, get) => ({
@@ -51,13 +62,29 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
       updatedAt: now()
     }
     await api.saveProfile(profile)
+    const previousActive = get().activeProfileId
     set((s) => ({
       profiles: [...s.profiles, profile],
       activeProfileId: s.activeProfileId ?? profile.id
     }))
-    if (get().activeProfileId === profile.id) {
+    if (previousActive === null) {
       await api.setActive(profile.id)
     }
+    return profile
+  },
+
+  async createSampleProfile(opts) {
+    const baseName = opts?.baseName ?? DEFAULT_SAMPLE_NAME
+    const name = uniqueProfileName(get().profiles, baseName)
+    const created = await get().createProfile(name)
+    if (opts?.presetId) {
+      const preset = PRESETS.find((p) => p.id === opts.presetId)
+      if (preset && Object.keys(preset.mapping).length > 0) {
+        await get().applyMapping(created.id, preset.mapping)
+        return { ...created, mapping: preset.mapping }
+      }
+    }
+    return created
   },
 
   async renameProfile(id, name) {

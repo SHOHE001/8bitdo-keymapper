@@ -14,7 +14,7 @@ function createWindow(): void {
     title: '8BitDo Keymapper',
     autoHideMenuBar: true,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false
     }
   })
@@ -28,6 +28,8 @@ function createWindow(): void {
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    // dev時のみDevToolsを別ウィンドウで自動オープン（is.devでガード済み、本番ビルドには混入しない）
+    win.webContents.openDevTools({ mode: 'detach' })
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }

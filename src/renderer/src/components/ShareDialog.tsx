@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useUiStore } from '../store/useUiStore'
 import { useProfileStore } from '../store/useProfileStore'
 import { encodeProfile, decodeProfile } from '../lib/shareCode'
@@ -14,7 +14,10 @@ export function ShareDialog() {
   const [copied, setCopied] = useState(false)
   const [importError, setImportError] = useState('')
 
-  const shareCode = activeProfile ? encodeProfile(activeProfile) : ''
+  const shareCode = useMemo(
+    () => (isShareDialogOpen && activeProfile ? encodeProfile(activeProfile) : ''),
+    [isShareDialogOpen, activeProfile]
+  )
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(shareCode)

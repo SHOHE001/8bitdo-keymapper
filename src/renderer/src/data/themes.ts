@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { ModelTheme } from '@shared/types'
 
 export interface ThemeConfig {
@@ -101,4 +102,8 @@ export const THEMES: ThemeConfig[] = [
 
 export function getTheme(id: ModelTheme): ThemeConfig {
   return THEMES.find((t) => t.id === id) ?? THEMES[0]
+}
+
+export function getThemeStyle(id: ModelTheme): CSSProperties {
+  return getTheme(id).vars as unknown as CSSProperties
 }

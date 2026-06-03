@@ -34,4 +34,11 @@ describe('shareCode', () => {
     const broken = 'BKM1:' + btoa(JSON.stringify({ id: 'x' }))
     expect(decodeProfile(broken)).toBeNull()
   })
+
+  it('日本語プロファイル名でも encode/decode が往復する', () => {
+    const jp: Profile = { ...SAMPLE, name: 'マイプロファイル' }
+    const code = encodeProfile(jp)
+    const decoded = decodeProfile(code)
+    expect(decoded).toEqual(jp)
+  })
 })
