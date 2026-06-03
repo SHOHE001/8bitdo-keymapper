@@ -1,5 +1,7 @@
 import { Component, type ReactNode } from 'react'
 
+// 同期描画エラー専任。非同期 Promise rejection は main.tsx の
+// unhandledrejection ハンドラ + store 内 toast 側で扱う。
 interface State {
   error: Error | null
 }

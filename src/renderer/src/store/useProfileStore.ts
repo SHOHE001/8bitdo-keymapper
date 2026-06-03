@@ -3,6 +3,8 @@ import type { Profile, KeyId, Assignment, ModelTheme, KeyMapping } from '@shared
 import { api } from '../lib/ipc'
 import { PRESETS } from '../data/presets'
 import { useUiStore } from './useUiStore'
+import { withErrorToast } from '../lib/storeErrors'
+import { toastMessages } from '../lib/toastMessages'
 
 export const DEFAULT_SAMPLE_NAME = 'マイプロファイル'
 
@@ -47,8 +49,14 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
     api.onStoreError((message) => {
       useUiStore.getState().addToast(message, 'error')
     })
-    const state = await api.getState()
-    set({ profiles: state.profiles, activeProfileId: state.activeProfileId, initialized: true })
+    try {
+      const state = await api.getState()
+      set({ profiles: state.profiles, activeProfileId: state.activeProfileId, initialized: true })
+    } catch (err) {
+      useUiStore.getState().addToast(toastMessages.stateLoadFailed(), 'error')
+      set({ initialized: true })
+      throw err
+    }
   },
 
   activeProfile() {
@@ -65,14 +73,20 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
       createdAt: now(),
       updatedAt: now()
     }
-    await api.saveProfile(profile)
     const previousActive = get().activeProfileId
+    const prevProfiles = get().profiles
     set((s) => ({
       profiles: [...s.profiles, profile],
       activeProfileId: s.activeProfileId ?? profile.id
     }))
-    if (previousActive === null) {
-      await api.setActive(profile.id)
+    try {
+      await withErrorToast(toastMessages.saveProfileFailed(), () => api.saveProfile(profile))
+      if (previousActive === null) {
+        await withErrorToast(toastMessages.setActiveFailed(), () => api.setActive(profile.id))
+      }
+    } catch (err) {
+      set({ profiles: prevProfiles, activeProfileId: previousActive })
+      throw err
     }
     return profile
   },
@@ -95,32 +109,56 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
     const profile = get().profiles.find((p) => p.id === id)
     if (!profile) return
     const updated = { ...profile, name, updatedAt: now() }
-    await api.saveProfile(updated)
+    const prev = get().profiles
     set((s) => ({ profiles: s.profiles.map((p) => (p.id === id ? updated : p)) }))
+    try {
+      await withErrorToast(toastMessages.saveProfileFailed(), () => api.saveProfile(updated))
+    } catch (err) {
+      set({ profiles: prev })
+      throw err
+    }
   },
 
   async deleteProfile(id) {
-    await api.deleteProfile(id)
-    set((s) => {
-      const profiles = s.profiles.filter((p) => p.id !== id)
-      const activeProfileId =
-        s.activeProfileId === id ? (profiles[0]?.id ?? null) : s.activeProfileId
-      return { profiles, activeProfileId }
-    })
-    await api.setActive(get().activeProfileId)
+    const prevProfiles = get().profiles
+    const prevActive = get().activeProfileId
+    const nextProfiles = prevProfiles.filter((p) => p.id !== id)
+    const nextActive = prevActive === id ? (nextProfiles[0]?.id ?? null) : prevActive
+    set({ profiles: nextProfiles, activeProfileId: nextActive })
+    try {
+      await withErrorToast(toastMessages.deleteProfileFailed(), () => api.deleteProfile(id))
+      if (prevActive === id) {
+        await withErrorToast(toastMessages.setActiveFailed(), () => api.setActive(nextActive))
+      }
+    } catch (err) {
+      set({ profiles: prevProfiles, activeProfileId: prevActive })
+      throw err
+    }
   },
 
   async setActive(id) {
-    await api.setActive(id)
+    const prev = get().activeProfileId
     set({ activeProfileId: id })
+    try {
+      await withErrorToast(toastMessages.setActiveFailed(), () => api.setActive(id))
+    } catch (err) {
+      set({ activeProfileId: prev })
+      throw err
+    }
   },
 
   async setTheme(id, theme) {
     const profile = get().profiles.find((p) => p.id === id)
     if (!profile) return
     const updated = { ...profile, theme, updatedAt: now() }
-    await api.saveProfile(updated)
+    const prev = get().profiles
     set((s) => ({ profiles: s.profiles.map((p) => (p.id === id ? updated : p)) }))
+    try {
+      await withErrorToast(toastMessages.saveProfileFailed(), () => api.saveProfile(updated))
+    } catch (err) {
+      set({ profiles: prev })
+      throw err
+    }
   },
 
   async setAssignment(profileId, keyId, assignment) {
@@ -131,15 +169,27 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
       mapping: { ...profile.mapping, [keyId]: assignment },
       updatedAt: now()
     }
-    await api.saveProfile(updated)
+    const prev = get().profiles
     set((s) => ({ profiles: s.profiles.map((p) => (p.id === profileId ? updated : p)) }))
+    try {
+      await withErrorToast(toastMessages.saveProfileFailed(), () => api.saveProfile(updated))
+    } catch (err) {
+      set({ profiles: prev })
+      throw err
+    }
   },
 
   async applyMapping(profileId, mapping) {
     const profile = get().profiles.find((p) => p.id === profileId)
     if (!profile) return
     const updated = { ...profile, mapping, updatedAt: now() }
-    await api.saveProfile(updated)
+    const prev = get().profiles
     set((s) => ({ profiles: s.profiles.map((p) => (p.id === profileId ? updated : p)) }))
+    try {
+      await withErrorToast(toastMessages.saveProfileFailed(), () => api.saveProfile(updated))
+    } catch (err) {
+      set({ profiles: prev })
+      throw err
+    }
   }
 }))
