@@ -26,11 +26,12 @@ export function ShareDialog() {
   }
 
   const handleImport = async () => {
-    const profile = decodeProfile(importCode.trim())
-    if (!profile) {
-      setImportError('無効なコードです')
+    const result = decodeProfile(importCode.trim())
+    if (!result.ok) {
+      setImportError(result.message)
       return
     }
+    const profile = result.profile
     setImportError('')
     const existing = profiles.find((p) => p.id === profile.id)
     if (existing) {

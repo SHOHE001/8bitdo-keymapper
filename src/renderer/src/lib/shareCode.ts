@@ -1,4 +1,10 @@
 import type { Profile } from '@shared/types'
+import {
+  decodeFailure,
+  MAX_SHARE_CODE_LENGTH,
+  validateProfile,
+  type DecodeResult
+} from '@shared/validation'
 
 const PREFIX = 'BKM1:'
 
@@ -22,14 +28,27 @@ export function encodeProfile(profile: Profile): string {
   return PREFIX + utf8ToBase64(JSON.stringify(profile))
 }
 
-export function decodeProfile(code: string): Profile | null {
+export function decodeProfile(code: string): DecodeResult {
+  const raw = code.trim()
+  if (!raw) return decodeFailure('empty')
+  if (raw.length > MAX_SHARE_CODE_LENGTH) return decodeFailure('too-large')
+  if (!raw.startsWith(PREFIX)) return decodeFailure('invalid-prefix')
+
+  let jsonText: string
   try {
-    const raw = code.trim()
-    if (!raw.startsWith(PREFIX)) return null
-    const json = JSON.parse(base64ToUtf8(raw.slice(PREFIX.length))) as Profile
-    if (!json.id || !json.name || typeof json.mapping !== 'object') return null
-    return json
+    jsonText = base64ToUtf8(raw.slice(PREFIX.length))
   } catch {
-    return null
+    return decodeFailure('invalid-base64')
   }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonText)
+  } catch {
+    return decodeFailure('invalid-json')
+  }
+
+  const profile = validateProfile(parsed)
+  if (!profile) return decodeFailure('invalid-shape')
+  return { ok: true, profile }
 }
