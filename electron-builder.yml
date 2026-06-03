@@ -1,3 +1,8 @@
+# 配布運用メモ:
+#   - 現状コード署名 (Windows: signingHashAlgorithms / certificateFile, macOS: identity) は未設定。
+#     正式配布する場合は Windows コードサイニング証明書の取得 + electron-builder の signing 設定が必須。
+#   - autoUpdate (electron-updater) も未導入。配布は手動リリースの想定。
+#     継続配布するなら publish 設定と electron-updater を後付けで導入する。
 appId: com.shohei.8bitdo-keymapper
 productName: 8BitDo Keymapper
 copyright: Copyright © 2025
