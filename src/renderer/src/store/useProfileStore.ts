@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Profile, KeyId, Assignment, ModelTheme, KeyMapping } from '@shared/types'
 import { api } from '../lib/ipc'
 import { PRESETS } from '../data/presets'
+import { useUiStore } from './useUiStore'
 
 export const DEFAULT_SAMPLE_NAME = 'マイプロファイル'
 
@@ -43,6 +44,9 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   initialized: false,
 
   async init() {
+    api.onStoreError((message) => {
+      useUiStore.getState().addToast(message, 'error')
+    })
     const state = await api.getState()
     set({ profiles: state.profiles, activeProfileId: state.activeProfileId, initialized: true })
   },

@@ -50,10 +50,12 @@ export interface Profile {
   updatedAt: string
 }
 
+export type AppStateVersion = 1 | 2
+
 export interface AppState {
   profiles: Profile[]
   activeProfileId: string | null
-  version: 1
+  version: AppStateVersion
 }
 
 export interface IpcApi {
@@ -63,4 +65,5 @@ export interface IpcApi {
   setActive(id: string | null): Promise<void>
   exportProfile(profile: Profile): Promise<string | null>
   importProfile(): Promise<Profile | null>
+  onStoreError(callback: (message: string) => void): () => void
 }

@@ -1,4 +1,6 @@
 import type {
+  AppState,
+  AppStateVersion,
   Assignment,
   ComboAssignment,
   DisabledAssignment,
@@ -165,4 +167,31 @@ export const DECODE_FAILURE_MESSAGES: Record<DecodeFailureReason, string> = {
 
 export function decodeFailure(reason: DecodeFailureReason): DecodeFailure {
   return { ok: false, reason, message: DECODE_FAILURE_MESSAGES[reason] }
+}
+
+const ALLOWED_VERSIONS: AppStateVersion[] = [1, 2]
+
+function isAllowedVersion(v: unknown): v is AppStateVersion {
+  return typeof v === 'number' && (ALLOWED_VERSIONS as number[]).includes(v)
+}
+
+export function validateAppState(raw: unknown): AppState | null {
+  if (!isObject(raw)) return null
+  if (!isAllowedVersion(raw.version)) return null
+  if (!Array.isArray(raw.profiles)) return null
+  const profiles: Profile[] = []
+  for (const p of raw.profiles) {
+    const profile = validateProfile(p)
+    if (!profile) return null
+    profiles.push(profile)
+  }
+  const activeProfileId =
+    raw.activeProfileId === null || typeof raw.activeProfileId === 'string'
+      ? (raw.activeProfileId as string | null)
+      : null
+  return {
+    profiles,
+    activeProfileId: activeProfileId ?? null,
+    version: raw.version
+  }
 }

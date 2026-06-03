@@ -4,5 +4,6 @@ export const IPC = {
   DELETE_PROFILE: 'profiles:delete',
   SET_ACTIVE: 'profiles:setActive',
   EXPORT_PROFILE: 'profiles:export',
-  IMPORT_PROFILE: 'profiles:import'
+  IMPORT_PROFILE: 'profiles:import',
+  STORE_ERROR: 'store:error'
 } as const
