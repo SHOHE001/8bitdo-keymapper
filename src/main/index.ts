@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { registerProfileHandlers } from './ipc/profiles'
+import { registerStateHandlers } from './ipc/state'
 import { registerIoHandlers } from './ipc/io'
 import { registerMainWindow } from './notifications'
 
@@ -67,7 +67,7 @@ app.whenReady().then(() => {
   })
 
   installCsp()
-  registerProfileHandlers()
+  registerStateHandlers()
   registerIoHandlers()
   createWindow()
 

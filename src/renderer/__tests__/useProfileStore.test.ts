@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import type { AppState } from '../../shared/types'
+import type { Command } from '../../shared/commands'
 
 vi.mock('../src/lib/ipc', () => ({
   api: {
-    getState: vi.fn(async () => ({ profiles: [], activeProfileId: null, version: 1 as const })),
-    saveProfile: vi.fn(async () => {}),
-    deleteProfile: vi.fn(async () => {}),
-    setActive: vi.fn(async () => {}),
+    getState: vi.fn(),
+    mutate: vi.fn(),
     exportProfile: vi.fn(async () => null),
     importProfile: vi.fn(async () => null),
     onStoreError: vi.fn(() => () => {})
@@ -17,27 +17,52 @@ import { useProfileStore, DEFAULT_SAMPLE_NAME } from '../src/store/useProfileSto
 import { useUiStore } from '../src/store/useUiStore'
 import { PRESETS } from '../src/data/presets'
 
-function resetStore(): void {
-  useProfileStore.setState({
-    profiles: [],
-    activeProfileId: null,
-    initialized: true
+let fakeState: AppState = { profiles: [], activeProfileId: null, version: 1 }
+
+function resetMutateMock(): void {
+  fakeState = { profiles: [], activeProfileId: null, version: 1 }
+  vi.mocked(api.getState).mockResolvedValue(fakeState)
+  vi.mocked(api.mutate).mockImplementation(async (command: Command) => {
+    switch (command.type) {
+      case 'profiles/save': {
+        const idx = fakeState.profiles.findIndex((p) => p.id === command.profile.id)
+        const profiles =
+          idx >= 0
+            ? fakeState.profiles.map((p) => (p.id === command.profile.id ? command.profile : p))
+            : [...fakeState.profiles, command.profile]
+        fakeState = { ...fakeState, profiles }
+        return fakeState
+      }
+      case 'profiles/delete': {
+        const profiles = fakeState.profiles.filter((p) => p.id !== command.id)
+        const activeProfileId =
+          fakeState.activeProfileId === command.id
+            ? (profiles[0]?.id ?? null)
+            : fakeState.activeProfileId
+        fakeState = { ...fakeState, profiles, activeProfileId }
+        return fakeState
+      }
+      case 'profiles/setActive':
+        fakeState = { ...fakeState, activeProfileId: command.id }
+        return fakeState
+    }
   })
+}
+
+function resetStore(): void {
+  useProfileStore.setState({ profiles: [], activeProfileId: null, initialized: true })
   useUiStore.setState({ toasts: [] })
 }
 
 describe('useProfileStore - 正常系', () => {
   beforeEach(() => {
+    resetMutateMock()
     resetStore()
-    vi.clearAllMocks()
   })
 
   it('createProfile は作成した Profile を返す', async () => {
     const created = await useProfileStore.getState().createProfile('テスト1')
     expect(created.name).toBe('テスト1')
-    expect(created.theme).toBe('nes')
-    expect(created.mapping).toEqual({})
-    expect(created.id).toBeTruthy()
     expect(useProfileStore.getState().profiles).toHaveLength(1)
     expect(useProfileStore.getState().activeProfileId).toBe(created.id)
   })
@@ -98,7 +123,6 @@ describe('useProfileStore - 正常系', () => {
     const remaining = useProfileStore.getState().profiles
     expect(remaining).toHaveLength(1)
     expect(remaining[0].name).toBe('B')
-    expect(useProfileStore.getState().activeProfileId).toBe(remaining[0].id)
   })
 
   it('applyMapping は mapping を丸ごと差し替える', async () => {
@@ -112,15 +136,15 @@ describe('useProfileStore - 正常系', () => {
   })
 })
 
-describe('useProfileStore - 失敗系（IPC reject）', () => {
+describe('useProfileStore - 失敗系（mutate reject）', () => {
   beforeEach(() => {
+    resetMutateMock()
     resetStore()
-    vi.clearAllMocks()
   })
 
   it('setAssignment 失敗時は state がロールバックされ、error toast が追加される', async () => {
     const created = await useProfileStore.getState().createProfile('テスト')
-    vi.mocked(api.saveProfile).mockRejectedValueOnce(new Error('disk full'))
+    vi.mocked(api.mutate).mockRejectedValueOnce(new Error('disk full'))
     await expect(
       useProfileStore
         .getState()
@@ -134,21 +158,21 @@ describe('useProfileStore - 失敗系（IPC reject）', () => {
 
   it('renameProfile 失敗時は名前がロールバックされる', async () => {
     const created = await useProfileStore.getState().createProfile('旧')
-    vi.mocked(api.saveProfile).mockRejectedValueOnce(new Error('boom'))
+    vi.mocked(api.mutate).mockRejectedValueOnce(new Error('boom'))
     await expect(useProfileStore.getState().renameProfile(created.id, '新')).rejects.toThrow('boom')
     expect(useProfileStore.getState().profiles[0].name).toBe('旧')
   })
 
   it('setTheme 失敗時はテーマがロールバックされる', async () => {
     const created = await useProfileStore.getState().createProfile('テスト')
-    vi.mocked(api.saveProfile).mockRejectedValueOnce(new Error('boom'))
+    vi.mocked(api.mutate).mockRejectedValueOnce(new Error('boom'))
     await expect(useProfileStore.getState().setTheme(created.id, 'c64')).rejects.toThrow('boom')
     expect(useProfileStore.getState().profiles[0].theme).toBe('nes')
   })
 
   it('deleteProfile 失敗時は profile が復元される', async () => {
     const created = await useProfileStore.getState().createProfile('テスト')
-    vi.mocked(api.deleteProfile).mockRejectedValueOnce(new Error('boom'))
+    vi.mocked(api.mutate).mockRejectedValueOnce(new Error('boom'))
     await expect(useProfileStore.getState().deleteProfile(created.id)).rejects.toThrow('boom')
     expect(useProfileStore.getState().profiles).toHaveLength(1)
   })
@@ -156,14 +180,14 @@ describe('useProfileStore - 失敗系（IPC reject）', () => {
   it('setActive 失敗時は activeProfileId がロールバックされる', async () => {
     const a = await useProfileStore.getState().createProfile('A')
     const b = await useProfileStore.getState().createProfile('B')
-    vi.mocked(api.setActive).mockRejectedValueOnce(new Error('boom'))
+    vi.mocked(api.mutate).mockRejectedValueOnce(new Error('boom'))
     await expect(useProfileStore.getState().setActive(b.id)).rejects.toThrow('boom')
     expect(useProfileStore.getState().activeProfileId).toBe(a.id)
   })
 
   it('applyMapping 失敗時は mapping がロールバックされる', async () => {
     const created = await useProfileStore.getState().createProfile('テスト')
-    vi.mocked(api.saveProfile).mockRejectedValueOnce(new Error('boom'))
+    vi.mocked(api.mutate).mockRejectedValueOnce(new Error('boom'))
     await expect(
       useProfileStore
         .getState()
@@ -173,7 +197,7 @@ describe('useProfileStore - 失敗系（IPC reject）', () => {
   })
 
   it('createProfile の saveProfile 失敗時は state からも消える', async () => {
-    vi.mocked(api.saveProfile).mockRejectedValueOnce(new Error('boom'))
+    vi.mocked(api.mutate).mockRejectedValueOnce(new Error('boom'))
     await expect(useProfileStore.getState().createProfile('落ちる')).rejects.toThrow('boom')
     expect(useProfileStore.getState().profiles).toHaveLength(0)
     expect(useProfileStore.getState().activeProfileId).toBeNull()

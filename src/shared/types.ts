@@ -58,11 +58,11 @@ export interface AppState {
   version: AppStateVersion
 }
 
+import type { Command } from './commands'
+
 export interface IpcApi {
   getState(): Promise<AppState>
-  saveProfile(profile: Profile): Promise<void>
-  deleteProfile(id: string): Promise<void>
-  setActive(id: string | null): Promise<void>
+  mutate(command: Command): Promise<AppState>
   exportProfile(profile: Profile): Promise<string | null>
   importProfile(): Promise<Profile | null>
   onStoreError(callback: (message: string) => void): () => void

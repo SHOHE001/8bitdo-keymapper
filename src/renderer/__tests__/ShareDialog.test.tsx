@@ -4,9 +4,11 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 vi.mock('../src/lib/ipc', () => ({
   api: {
     getState: vi.fn(async () => ({ profiles: [], activeProfileId: null, version: 1 as const })),
-    saveProfile: vi.fn(async () => {}),
-    deleteProfile: vi.fn(async () => {}),
-    setActive: vi.fn(async () => {}),
+    mutate: vi.fn(async () => ({
+      profiles: useProfileStore.getState().profiles,
+      activeProfileId: useProfileStore.getState().activeProfileId,
+      version: 1 as const
+    })),
     exportProfile: vi.fn(async () => null),
     importProfile: vi.fn(async () => null),
     onStoreError: vi.fn(() => () => {})
