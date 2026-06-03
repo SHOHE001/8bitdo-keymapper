@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react'
 import { useUiStore } from '../store/useUiStore'
 import { useProfileStore } from '../store/useProfileStore'
 import { encodeProfile, decodeProfile } from '../lib/shareCode'
+import { toastMessages } from '../lib/toastMessages'
+
+const COPIED_FEEDBACK_MS = 2000
 
 export function ShareDialog() {
   const { isShareDialogOpen, closeShareDialog } = useUiStore()
@@ -20,9 +23,13 @@ export function ShareDialog() {
   )
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(shareCode)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(shareCode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
+    } catch {
+      useUiStore.getState().addToast(toastMessages.clipboardFailed(), 'error')
+    }
   }
 
   const handleImport = async () => {
@@ -33,13 +40,17 @@ export function ShareDialog() {
     }
     const profile = result.profile
     setImportError('')
+
     const existing = profiles.find((p) => p.id === profile.id)
     if (existing) {
+      const confirmed = await useUiStore
+        .getState()
+        .requestConfirm(`プロファイル「${existing.name}」を上書きします。よろしいですか？`)
+      if (!confirmed) return
       await applyMapping(profile.id, profile.mapping)
     } else {
-      await createProfile(profile.name)
-      const newId = useProfileStore.getState().profiles.at(-1)?.id
-      if (newId) await applyMapping(newId, profile.mapping)
+      const created = await createProfile(profile.name)
+      await applyMapping(created.id, profile.mapping)
     }
     setImportCode('')
     closeShareDialog()
