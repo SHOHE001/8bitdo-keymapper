@@ -3,8 +3,10 @@
 8BitDo Retro Mechanical Keyboard のキー割当をビジュアルに設計・共有するための Electron アプリ。
 プロファイル（テーマ、キー割当、マクロ等）を作成・保存・エクスポート/インポート・共有コードで配布できる。
 
-> **重要**: このアプリは OS のキーマップを書き換えない。プロファイル JSON のエディタである。
-> 実際に物理キーボードに反映するには、エクスポートした JSON を 8BitDo Ultimate Software 等に取り込む運用を想定している。
+> **重要**: このアプリ自体は OS のキーマップを書き換えない。プロファイルのエディタである。
+> 実際にキー割当を効かせる方法は 2 通り:
+> 1. エクスポートした JSON を 8BitDo Ultimate Software 等に取り込み、キーボード本体に反映する
+> 2. **AutoHotkey スクリプト(.ahk)に書き出し、Windows 側で OS レベルのリマップとして適用する**（実機ファームに書き込まず、PC 再起動後も自動適用したいとき）。手順は [`docs/ahk-setup.md`](docs/ahk-setup.md) を参照
 
 ## 機能
 
@@ -17,6 +19,7 @@
   - マウスボタン（mouse: Left / Right / Middle / WheelUp / WheelDown）
   - 無効化（disabled）
 - プロファイルのエクスポート / インポート（JSON ファイル）
+- **AutoHotkey v2 スクリプト(.ahk)への書き出し**（Windows で OS レベルのリマップとして適用 → [`docs/ahk-setup.md`](docs/ahk-setup.md)）
 - 共有コード（`BKM1:...` の base64 文字列）でのコピペ共有
 - 簡易プリセット（qwerty / famicom / fps）
 
@@ -46,7 +49,7 @@ npm run build:win  # Windows 向けインストーラ生成
 - `src/main/` — Electron main プロセス。`store.ts` で `app-state.json` を読み書きし、`ipc/state.ts` の `state:mutate` チャネルで renderer からの操作を受ける。
 - `src/preload/` — `contextBridge` 経由で `window.api` に IPC を公開（`contextIsolation: true`, `nodeIntegration: false`）。
 - `src/renderer/` — React + Tailwind + zustand。状態は main を真実とみなし、`api.mutate(command)` の戻り値で同期する。
-- `src/shared/` — 両プロセスで共有する型・バリデータ・コマンド定義（`validation.ts`, `commands.ts`, `assignmentKinds.ts`, `prettyKeyCode.ts`）。
+- `src/shared/` — 両プロセスで共有する型・バリデータ・コマンド定義（`validation.ts`, `commands.ts`, `assignmentKinds.ts`, `prettyKeyCode.ts`）。`ahk/` はプロファイル → AutoHotkey v2 スクリプト変換の純関数（`codeToAhk.ts`, `generateAhk.ts`）。
 
 ## セキュリティ
 

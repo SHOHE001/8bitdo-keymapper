@@ -5,6 +5,9 @@ export const toastMessages = {
   profileDeleted: (name: string) => `プロファイル「${name}」を削除しました`,
   profileImported: (name: string) => `プロファイル「${name}」を読み込みました`,
   profileExported: () => 'プロファイルを書き出しました',
+  ahkExported: () => 'AutoHotkey スクリプトを書き出しました',
+  ahkExportedWithWarnings: (n: number) =>
+    `AutoHotkey スクリプトを書き出しました（${n} 件は変換できずスキップ）`,
   presetApplied: (name: string) => `プリセット「${name}」を適用しました`,
   sampleCreated: (name: string) => `サンプルプロファイル「${name}」を作成しました`,
   themeChanged: (label: string) => `テーマを「${label}」に変更しました`,

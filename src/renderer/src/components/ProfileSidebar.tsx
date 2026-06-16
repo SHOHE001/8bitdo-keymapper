@@ -59,6 +59,17 @@ export function ProfileSidebar() {
     if (path) addToast(toastMessages.profileExported(), 'success')
   }
 
+  const handleExportAhk = async () => {
+    if (!activeProfile) return
+    const result = await api.exportProfileAhk(activeProfile)
+    if (!result) return
+    if (result.warnings.length > 0) {
+      addToast(toastMessages.ahkExportedWithWarnings(result.warnings.length), 'info')
+    } else {
+      addToast(toastMessages.ahkExported(), 'success')
+    }
+  }
+
   const handleImport = async () => {
     const imported = await api.importProfile()
     if (!imported) return
@@ -202,6 +213,18 @@ export function ProfileSidebar() {
               Import
             </button>
           </div>
+          <button
+            onClick={handleExportAhk}
+            disabled={!activeProfile}
+            className="mt-1 w-full py-1 rounded text-xs border border-[var(--keycap-border)] hover:border-[var(--accent)] disabled:opacity-40"
+            title={
+              activeProfile
+                ? 'AutoHotkey v2 スクリプト(.ahk)に書き出し（Windows で再起動後も適用したいとき）'
+                : 'プロファイルを選択してください'
+            }
+          >
+            AHK 書き出し
+          </button>
         </div>
       </div>
     </div>

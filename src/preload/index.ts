@@ -7,6 +7,7 @@ const api: IpcApi = {
   getState: () => ipcRenderer.invoke(IPC.GET_STATE),
   mutate: (command: Command) => ipcRenderer.invoke(IPC.STATE_MUTATE, command),
   exportProfile: (profile: Profile) => ipcRenderer.invoke(IPC.EXPORT_PROFILE, profile),
+  exportProfileAhk: (profile: Profile) => ipcRenderer.invoke(IPC.EXPORT_AHK, profile),
   importProfile: () => ipcRenderer.invoke(IPC.IMPORT_PROFILE),
   onStoreError: (callback) => {
     const handler = (_e: IpcRendererEvent, message: string): void => callback(message)

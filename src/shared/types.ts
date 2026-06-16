@@ -72,10 +72,17 @@ export interface AppUiState {
 
 import type { Command } from './commands'
 
+/** AutoHotkey 書き出しの結果。warnings は変換できずスキップした項目の説明（日本語）。 */
+export interface AhkExportResult {
+  path: string
+  warnings: string[]
+}
+
 export interface IpcApi {
   getState(): Promise<AppState>
   mutate(command: Command): Promise<AppState>
   exportProfile(profile: Profile): Promise<string | null>
+  exportProfileAhk(profile: Profile): Promise<AhkExportResult | null>
   importProfile(): Promise<Profile | null>
   onStoreError(callback: (message: string) => void): () => void
 }

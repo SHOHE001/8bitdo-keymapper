@@ -36,6 +36,7 @@ function makeApi(): IpcApi {
       }
     }),
     exportProfile: vi.fn(async () => null),
+    exportProfileAhk: vi.fn(async () => null),
     importProfile: vi.fn(async () => null),
     onStoreError: vi.fn(() => () => {})
   }
